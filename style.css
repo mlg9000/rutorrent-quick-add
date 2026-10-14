@@ -1,0 +1,22 @@
+*{box-sizing:border-box}body{font:14px system-ui,sans-serif;color:#202938;background:#f7f9fc;margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #cdd6e2;background:#fff;color:#223047;border-radius:9px;padding:9px 13px}button:hover{border-color:#3679d6;background:#f1f6ff}button:disabled{opacity:.5;cursor:wait}button.primary{background:#246bcb;color:white}.launcher{padding:18px;min-width:390px}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}header strong{font-size:18px}small{color:#68788c;font-size:11px;display:block}header small{margin-top:3px}.ghost{border:0;background:transparent}.torrent{padding:12px;border:1px solid #dce3ee;border-radius:10px;background:white;margin-bottom:12px}#torrentName{margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}#status{min-height:24px;margin:10px 0;font-size:13px}#status.error{color:#b42318;background:#fff0ef;padding:10px;border-radius:8px}#status.success{color:#087443;background:#e9f9ef;padding:10px;border-radius:8px}#status.working{color:#205cb0}.destinations{display:grid;grid-template-columns:1fr 1fr;gap:10px}.destination{min-height:74px;text-align:left;padding:12px}.destination strong{display:block;font-size:15px;margin-bottom:6px}.destination small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}details{margin-top:15px;padding:12px;background:#fff;border:1px solid #dce3ee;border-radius:10px}summary{cursor:pointer;font-weight:600}label{display:block;margin:12px 0;font-size:12px;font-weight:600}label input:not([type=checkbox]),label select,textarea{display:block;width:100%;padding:9px;margin-top:5px;border:1px solid #cdd6e2;border-radius:6px;background:white}label.check{display:flex;align-items:center;gap:7px;font-size:13px}footer{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}.options{max-width:1000px;margin:35px auto;padding:0 25px}.options h1{font-size:26px}.options h2{border-bottom:1px solid #dce3ee;padding-bottom:8px;margin-top:30px}.editrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;background:#fff;border:1px solid #dce3ee;border-radius:10px;padding:12px;margin:10px 0}.editrow label{margin:0}.editrow button{margin-bottom:0}.actions{display:flex;gap:10px;margin-top:25px}.import{margin:0;cursor:pointer;border:1px solid #cdd6e2;border-radius:9px;padding:9px 13px;background:white;font-size:14px}.note{color:#68788c;font-size:12px}
+
+/* v0.1.6 UI improvements */
+#settings{font-size:26px;line-height:1;padding:7px 11px;min-width:45px;min-height:45px}header .server-link{display:inline-block;margin-top:5px;font-size:12px;color:#246bcb;text-decoration:underline;text-underline-offset:2px}header .server-link[hidden]{display:none}.brand-magnet{font-size:20px;vertical-align:-1px}
+
+/* v0.1.7: server link sits in footer, visually separate from title */
+footer{align-items:center}footer .server-link{margin-right:auto;color:#246bcb;font-size:13px;text-decoration:none;font-weight:600}footer .server-link:hover{text-decoration:underline}footer .server-link[hidden]{display:none}
+
+/* v0.1.8: always-visible server picker when multiple servers are configured */
+.server-switch{display:flex;align-items:center;gap:8px;margin-top:7px}.server-switch[hidden]{display:none}.server-switch label{margin:0;font-size:12px;color:#52627a}.server-switch select{max-width:245px;min-width:145px;padding:6px 26px 6px 9px;border:1px solid #cdd6e2;border-radius:7px;background:white;color:#223047;font-size:13px}header>div{min-width:0}
+
+/* Use the exact same red magnet artwork in all extension surfaces. */
+.brand-magnet{width:25px;height:25px;object-fit:contain;vertical-align:-5px;margin-right:5px}
+.settings-title{display:flex;align-items:center;gap:12px}
+.settings-title img{width:35px;height:35px;object-fit:contain}
+
+/* Monochrome destination icon library, shared by settings and launcher */
+.destination{position:relative;padding-left:53px}
+.destination-icon{position:absolute;left:13px;top:17px;width:29px;height:29px;object-fit:contain}
+.icon-setting{position:relative}
+.icon-setting select{padding-right:43px}
+.destination-icon-preview{position:absolute;right:10px;bottom:9px;width:24px;height:24px;pointer-events:none}
