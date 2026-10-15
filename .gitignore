@@ -1,0 +1,6 @@
+dist/
+*.xpi
+__pycache__/
+*.log
+.DS_Store
+*settings*.json

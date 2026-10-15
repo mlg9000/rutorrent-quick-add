@@ -1,0 +1,38 @@
+name: Build browser extensions
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check JavaScript syntax
+        run: |
+          find src browsers -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Build both browsers
+        run: python3 scripts/build.py
+      - name: Check ZIP integrity
+        run: |
+          python3 - <<'PYTEST'
+          import glob,zipfile,json
+          files=glob.glob('dist/*.zip')
+          assert len(files)==2
+          for path in files:
+              with zipfile.ZipFile(path) as z:
+                  assert z.testzip() is None
+                  manifest=json.loads(z.read('manifest.json'))
+                  assert manifest['version']=='1.0.4'
+                  print(path,manifest['manifest_version'])
+          PYTEST
+      - name: Upload unsigned packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-browser-extensions
+          path: dist/*.zip

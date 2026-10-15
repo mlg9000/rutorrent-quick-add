@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "ruTorrent Quick Add",
+  "version": "1.0.4",
+  "description": "Send magnet and torrent links to ruTorrent with configurable destinations and icons.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "contextMenus"
+  ],
+  "background": {
+    "service_worker": "background-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "capture.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "48": "icon-48.png",
+    "96": "icon-96.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "ruTorrent Quick Add",
+    "default_popup": "launcher.html",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png"
+    }
+  }
+}
