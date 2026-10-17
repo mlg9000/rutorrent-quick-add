@@ -20,3 +20,22 @@ footer{align-items:center}footer .server-link{margin-right:auto;color:#246bcb;fo
 .icon-setting{position:relative}
 .icon-setting select{padding-right:43px}
 .destination-icon-preview{position:absolute;right:10px;bottom:9px;width:24px;height:24px;pointer-events:none}
+
+/* Fit the launcher to Firefox's actual content viewport. */
+.launcher{min-width:0;width:100%;max-width:100%;padding:14px;overflow-x:hidden}
+.launcher header{gap:8px;min-width:0}
+.launcher header>div{min-width:0;flex:1}
+.launcher .destinations{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.launcher .destination{min-width:0;overflow:hidden}
+.launcher .destination strong,.launcher .destination small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.launcher footer{flex-wrap:wrap}
+@media(max-width:390px){.launcher .destinations{grid-template-columns:minmax(0,1fr)}}
+
+/* v1.0.7: icon and label are separate grid cells; no text/icon overlap. */
+.launcher .destination{display:grid;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;column-gap:11px;align-content:center;min-height:76px;padding:10px 12px;text-align:left;overflow:hidden}
+.launcher .destination-icon{position:static;grid-column:1;grid-row:1 / 3;width:27px;height:27px;align-self:center}
+.launcher .destination strong{grid-column:2;grid-row:1;min-width:0;margin:0 0 4px;font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.launcher .destination small{grid-column:2;grid-row:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.launcher #status{overflow-wrap:anywhere}
+.launcher footer{min-width:0}
+.launcher footer .server-link{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

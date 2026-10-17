@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ruTorrent Quick Add",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "description": "Send magnet and torrent links to ruTorrent with configurable destinations and icons.",
   "permissions": [
     "storage",
@@ -41,5 +41,15 @@
       "16": "icon-16.png",
       "32": "icon-32.png"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "page-fetch.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }
