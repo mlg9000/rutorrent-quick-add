@@ -63,6 +63,37 @@ jobs:
           name: unsigned-browser-extensions
           path: dist/*.zip
           if-no-files-found: error
+      - name: Set up Node.js for Mozilla submission
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Submit Firefox update to Mozilla (listed)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$WEB_EXT_API_KEY" || -z "$WEB_EXT_API_SECRET" ]]; then
+            echo 'Missing AMO_JWT_ISSUER or AMO_JWT_SECRET repository secret' >&2
+            exit 1
+          fi
+          npm install --global web-ext@8
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p "$RUNNER_TEMP/rqa-firefox"
+          python3 - "$VERSION" "$RUNNER_TEMP/rqa-firefox" <<'PYEXTRACT'
+          import sys, zipfile
+          from pathlib import Path
+          version, destination = sys.argv[1:]
+          path = Path('dist') / f'rutorrent-quick-add-firefox-{version}-unsigned.zip'
+          with zipfile.ZipFile(path) as archive:
+              archive.extractall(destination)
+          PYEXTRACT
+          web-ext sign \
+            --source-dir "$RUNNER_TEMP/rqa-firefox" \
+            --channel listed \
+            --approval-timeout 0
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
