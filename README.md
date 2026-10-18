@@ -1,73 +1,127 @@
 # ruTorrent Quick Add
 
-Send magnet and `.torrent` links from Firefox or Chrome to a remote ruTorrent server using one-click destination buttons.
-
-> **v1.0.4 — dual-browser source release candidate.** The Firefox implementation is based on v1.0.3; the Chrome Manifest V3 port has not yet been tested against a live ruTorrent instance. The ZIPs built here are **unsigned**.
+Send magnet links and `.torrent` files from Firefox or Chrome to your own ruTorrent server. Choose a destination directory from the launcher instead of downloading a torrent locally and uploading it manually.
 
 ## Screenshots
 
-**Torrent destination picker**
+![Torrent destination picker](screenshots/popup.png)
 
-![Torrent picker with destination buttons](screenshots/popup.png)
+![Extension settings and destination icons](screenshots/settings.png)
 
-**Settings and destination icons**
-
-![Settings with servers and destination icons](screenshots/settings.png)
-
-*Screenshots use fictional example configuration, not a live server.*
+*Screenshots show example settings; the interface may differ slightly from the current version.*
 
 ## Features
 
-- Magnet and `.torrent` link interception, plus context-menu submission
-- Multiple ruTorrent servers
-- Configurable labels and server-side download directories
-- Monochrome destination icons: TV, Movies, Video, Pictures, Applications, Games, Music, Books, Magazines, Anime, General
-- HTTP Basic or browser-managed session authentication
-- HTTPRPC verification and automatic popup close after confirmed success
-- Import/export of settings
+- Intercept magnet links and `.torrent` download links, including site-specific download endpoints matched with custom regular expressions
+- Send torrents to a configured ruTorrent server using destination buttons
+- Configure multiple servers, labels, icons, and remote download paths
+- Support HTTP Basic authentication or browser-managed sessions for ruTorrent
+- Verify submissions through ruTorrent HTTPRPC and close the launcher after confirmed success
+- Import and export extension settings
+- For torrent endpoints that return a login page to extension requests, retry from the originating website page context (Firefox tested; Chrome requires live verification)
+- Display diagnostic information when a torrent URL returns HTML instead of a torrent file
 
-## Install for development
+## Build
 
-Build both packages:
+Requires Python 3. Run from the repository root:
 
 ```bash
 python3 scripts/build.py
 ```
 
-**Firefox:** open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `browsers/firefox/manifest.json` **only if files are assembled together**. For a reliable temporary install, extract `dist/rutorrent-quick-add-firefox-1.0.4-unsigned.zip` to a folder and select its `manifest.json`.
+Or build one browser:
 
-**Chrome:** open `chrome://extensions`, enable **Developer mode**, select **Load unpacked**, and choose the extracted `dist/rutorrent-quick-add-chrome-1.0.4-unsigned.zip` folder.
+```bash
+python3 scripts/build.py firefox
+python3 scripts/build.py chrome
+```
 
-Configure the extension in its Options page. Paths refer to the **remote rTorrent host**, not your computer.
+Output files:
 
-## Publish
+```text
+dist/rutorrent-quick-add-firefox-1.0.8-unsigned.zip
+dist/rutorrent-quick-add-chrome-1.0.8-unsigned.zip
+```
 
-- **Firefox Add-ons:** upload the Firefox ZIP to Mozilla for review/signing. Keep the already-submitted v1.0.3 unchanged; use v1.0.4 for the next submission. For a public listing, Mozilla handles updates.
-- **Chrome Web Store:** upload the Chrome ZIP. Chrome review is independent of Mozilla review.
-- **GitHub:** tag a release (for example `v1.0.4`) and optionally attach the unsigned ZIPs for developers. Normal Firefox installations require Mozilla signing.
+The ZIP contents have `manifest.json` at their root.
+
+## Install for testing
+
+**Firefox (temporary):**
+
+1. Extract `dist/rutorrent-quick-add-firefox-1.0.8-unsigned.zip` into its own directory.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Choose **Load Temporary Add-on** and select the extracted `manifest.json`.
+4. Refresh any already-open torrent website tabs before testing link interception.
+
+Temporary add-ons are removed when Firefox restarts. For permanent installation in standard Firefox, use a Mozilla-signed `.xpi`.
+
+**Chrome (unpacked):**
+
+1. Extract `dist/rutorrent-quick-add-chrome-1.0.8-unsigned.zip` into its own directory.
+2. Open `chrome://extensions` and enable **Developer mode**.
+3. Select **Load unpacked** and choose the extracted directory.
+4. Refresh torrent website tabs before testing.
+
+After installing, open the extension's settings to configure your ruTorrent server and destinations. **Destination paths are paths on the remote rTorrent server**, not your local computer.
+
+## Custom torrent URL patterns
+
+Some sites use download endpoints without a `.torrent` suffix. Add a custom regular expression for those sites in the extension's settings. For example:
+
+```regex
+^https?://example\.com/forum/dl\.php\?t=\d+(?:&.*)?$
+```
+
+A matching URL triggers interception; it does not guarantee that the server will return a torrent. Sites requiring a login may still have browser-specific restrictions.
+
+## GitHub Actions and releases
+
+The workflow in `.github/workflows/build.yml`:
+
+- Checks JavaScript syntax and builds Firefox and Chrome packages on pushes and pull requests.
+- Verifies ZIP integrity, manifest types, and matching browser versions.
+- Checks that a `vX.Y.Z` tag matches the manifest version.
+- Uploads unsigned ZIPs as workflow artifacts.
+- **Creates a GitHub Release and attaches both unsigned ZIPs when a version tag is pushed.**
+
+To publish a *new* release, first update **both** `browsers/firefox/manifest.json` and `browsers/chrome/manifest.json` to the intended version, commit and push, then tag that commit:
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+Replace `X.Y.Z` with the actual version. **If a tag already exists, do not recreate or force-move it without checking whether it has been distributed.** Fixing the workflow on `main` does not retroactively change the commit referenced by an existing tag; use a new version tag or intentionally rerun a workflow on the appropriate commit.
+
+GitHub Releases do **not** sign Firefox extensions or publish to either browser store.
+
+## Publishing to browser stores
+
+**Firefox:** Submit the Firefox package to [Mozilla Add-on Developer Hub](https://addons.mozilla.org/developers/). Listed and self-distributed (unlisted) submissions have separate review/signing workflows. Wait for signing approval before distributing a permanent-install `.xpi`. Do not repeatedly submit the same version while it is awaiting review.
+
+**Chrome:** Upload the Chrome package to the Chrome Web Store Developer Dashboard, or use **Load unpacked** for local testing. Test the authenticated download fallback in Chrome before publishing.
 
 ## Source layout
 
 ```text
-src/                  Shared UI, settings, styles, images and SVG icons
-browsers/firefox/     Firefox Manifest V2, background, capture, shared-settings adapter
-browsers/chrome/      Chrome Manifest V3, service worker, capture, shared-settings adapter
-scripts/build.py      Reproducible dual-browser packaging
-dist/                 Generated unsigned extension ZIPs (gitignored)
-.github/workflows/    Automatic syntax checks and build artifacts
-screenshots/          Illustrative UI screenshots
+src/                  Shared launcher UI, styles, icons, and settings
+browsers/firefox/     Firefox Manifest V2 and browser-specific scripts
+browsers/chrome/      Chrome Manifest V3 and service-worker scripts
+scripts/build.py      Browser-specific ZIP packaging
+.github/workflows/    CI validation and GitHub Release publishing
+screenshots/          Example interface screenshots
+dist/                 Generated unsigned ZIPs (not committed)
 ```
-
-Build locally with `python3 scripts/build.py firefox` or `python3 scripts/build.py chrome`. GitHub Actions runs both builds on pushes and pull requests and publishes artifacts in the Actions run; **it does not publish to extension stores automatically**.
 
 ## Privacy and security
 
-The extension does not include analytics or advertising. It sends torrent links and metadata to servers you configure. Credentials are stored in extension local storage without extension-level encryption; **never commit exported settings**. Use HTTPS for remote servers. Broad website permissions support torrent-link interception and user-configured servers. See [PRIVACY.md](PRIVACY.md).
+No analytics or advertising are included. The extension sends torrent URLs and data to the ruTorrent servers you configure. Credentials and configuration are held in extension storage; do not commit exported settings, session cookies, or tracker passkeys. Use HTTPS for remote servers and see [PRIVACY.md](PRIVACY.md).
 
 ## Contributing
 
-Issues and PRs are welcome. Please remove credentials, tracker passkeys and private torrent URLs from logs before sharing. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Bug reports and pull requests are welcome. Remove private torrent URLs, passkeys, and credentials from logs before sharing. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE)

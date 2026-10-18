@@ -5,9 +5,15 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to publish a GitHub Release on tag pushes
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,21 +24,49 @@ jobs:
           find src browsers -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Build both browsers
         run: python3 scripts/build.py
-      - name: Check ZIP integrity
+      - name: Check ZIP integrity and manifest versions
+        env:
+          GIT_REF_TYPE: ${{ github.ref_type }}
+          GIT_REF_NAME: ${{ github.ref_name }}
         run: |
           python3 - <<'PYTEST'
-          import glob,zipfile,json
-          files=glob.glob('dist/*.zip')
-          assert len(files)==2
-          for path in files:
-              with zipfile.ZipFile(path) as z:
-                  assert z.testzip() is None
-                  manifest=json.loads(z.read('manifest.json'))
-                  assert manifest['version']=='1.0.4'
-                  print(path,manifest['manifest_version'])
+          import json
+          import os
+          import zipfile
+          from pathlib import Path
+
+          packages = {}
+          for browser in ('firefox', 'chrome'):
+              manifest_path = Path('browsers') / browser / 'manifest.json'
+              expected = json.loads(manifest_path.read_text())['version']
+              path = Path('dist') / f'rutorrent-quick-add-{browser}-{expected}-unsigned.zip'
+              assert path.is_file(), f'Missing {path}'
+              with zipfile.ZipFile(path) as archive:
+                  assert archive.testzip() is None, f'Corrupt ZIP: {path}'
+                  names = set(archive.namelist())
+                  assert 'manifest.json' in names, f'Missing manifest.json in {path}'
+                  manifest = json.loads(archive.read('manifest.json'))
+                  assert manifest['version'] == expected, f'{path}: version mismatch'
+                  assert manifest['manifest_version'] == (2 if browser == 'firefox' else 3), f'{path}: wrong manifest type'
+              packages[browser] = expected
+              print(f'Validated {path} (manifest v{manifest["manifest_version"]})')
+
+          assert len(list(Path('dist').glob('*.zip'))) == 2, 'Expected exactly two packages'
+          assert len(set(packages.values())) == 1, f'Browser versions differ: {packages}'
+          if os.environ.get('GIT_REF_TYPE') == 'tag':
+              tag = os.environ['GIT_REF_NAME']
+              assert tag == f'v{packages["firefox"]}', f'Tag {tag} does not match version {packages["firefox"]}'
           PYTEST
       - name: Upload unsigned packages
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-browser-extensions
           path: dist/*.zip
+          if-no-files-found: error
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/*.zip --title "ruTorrent Quick Add $TAG" --generate-notes
