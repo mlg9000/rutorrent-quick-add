@@ -11,7 +11,7 @@ chrome.runtime.onMessage.addListener((msg,sender,sendResponse)=>{
    const value=(await chrome.storage.session.get(pendingKey(msg.id)))[pendingKey(msg.id)];
    return value && Date.now()-value.created<600000 ? value : null;
   }
-  if(msg.type==='submit')return await submit(msg);
+  if(msg.type==='previewName')return await previewTorrentName(msg);if(msg.type==='submit')return await submit(msg);
   return null;
  })().then(sendResponse,error=>sendResponse({__quickAddError:error.message||String(error)}));
  return true;
@@ -71,12 +71,58 @@ async function fetchFromSiteTab(url,tabId){
  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
  return new Blob([bytes],{type:'application/x-bittorrent'});
 }
-async function submit(msg){let s=await settings(),server=serverFor(s,msg.serverId||s.serverId);if(!server)throw Error('No server configured');if(!/^https?:\/\//.test(server.url))throw Error('Server address must begin with https:// or http://');let dest=msg.destination;if(!dest||!dest.directory)throw Error('Choose a destination');let endpoint=new URL('php/addtorrent.php?json=1',server.url.endsWith('/')?server.url:server.url+'/');let headers={};if(server.auth==='basic'&&server.username)headers.Authorization='Basic '+btoa(unescape(encodeURIComponent(server.username+':'+(server.password||''))));let form=new FormData();form.append('dir_edit',dest.directory);form.append('label',dest.label||'');if(msg.paused)form.append('torrents_start_stopped','true');let url=msg.url,hash=null;if(/^magnet:\?/i.test(url)){hash=magnetHash(url);form.append('url',url)}else{let source=new URL(url);if(!/^https?:$/.test(source.protocol))throw Error('Unsupported torrent URL');let controller=new AbortController();let timeout=setTimeout(()=>controller.abort(),25000);let response;try{response=await fetch(url,{credentials:'include',signal:controller.signal})}finally{clearTimeout(timeout)}if(!response.ok)throw Error('Could not download .torrent file: HTTP '+response.status);let blob=await response.blob();if(blob.size>20*1024*1024)throw Error('Torrent file exceeds 20 MB');if(blob.size<10)throw Error('Downloaded torrent file is empty or invalid');let txt=await blob.slice(0,32).text();if(!/^d/.test(txt)){
- const initial='HTTP '+response.status+', '+(response.headers.get('content-type')||'unknown')+', path '+new URL(response.url).pathname;
- try{blob=await fetchFromSiteTab(url,msg.tabId)}catch(e){throw Error('Extension request returned non-torrent ('+initial+'). '+e.message)}
- if(blob.size>20*1024*1024||blob.size<10)throw Error('Page response has invalid torrent size');
- if(!/^d/.test(await blob.slice(0,32).text()))throw Error('Page retry also returned non-torrent content');
-}hash=await torrentHash(blob);form.append('torrent_file[]',blob,'quick-add.torrent')}
+// Read the name from the bencoded info dictionary, without altering magnet behavior.
+function torrentDisplayName(blob){
+ return blob.arrayBuffer().then(buffer=>{
+  const bytes=new Uint8Array(buffer);let pos=0, found=null;
+  const decoder=new TextDecoder('utf-8',{fatal:false});
+  function stringBytes(){
+   let len=0,digits=0;
+   while(pos<bytes.length&&bytes[pos]!==58){const c=bytes[pos++];if(c<48||c>57||++digits>12)throw Error('Invalid torrent string');len=len*10+c-48;if(len>bytes.length)throw Error('Torrent string too large')}
+   if(pos>=bytes.length)throw Error('Truncated torrent string');pos++;
+   if(pos+len>bytes.length)throw Error('Truncated torrent string');const value=bytes.subarray(pos,pos+len);pos+=len;return value;
+  }
+  function parse(depth=0,atInfo=false){
+   if(depth>80||pos>=bytes.length)throw Error('Invalid torrent metadata');const c=bytes[pos++];
+   if(c===100){let utf8=null,name=null;
+    while(pos<bytes.length&&bytes[pos]!==101){const key=decoder.decode(stringBytes());
+     if(atInfo&&(key==='name'||key==='name.utf-8')){
+      if(pos>=bytes.length||bytes[pos]<48||bytes[pos]>57)throw Error('Invalid torrent name');
+      const value=decoder.decode(stringBytes());if(key==='name.utf-8')utf8=value;else name=value;
+     }else parse(depth+1,!atInfo&&depth===0&&key==='info');
+    }
+    if(pos>=bytes.length)throw Error('Unterminated torrent dictionary');pos++;
+    if(atInfo)found=utf8||name||found;
+   }else if(c===108){while(pos<bytes.length&&bytes[pos]!==101)parse(depth+1);if(pos>=bytes.length)throw Error('Unterminated list');pos++}
+   else if(c===105){while(pos<bytes.length&&bytes[pos]!==101){if(bytes[pos]<45||bytes[pos]>57)throw Error('Invalid integer');pos++}if(pos>=bytes.length)throw Error('Unterminated integer');pos++}
+   else if(c>=48&&c<=57){pos--;stringBytes()}
+   else throw Error('Invalid torrent bencoding');
+  }
+  parse();return typeof found==='string'&&found.trim()?found.trim().slice(0,300):null;
+ });
+}
+async function downloadTorrentBlob(url,tabId){
+ const source=new URL(url);if(!/^https?:$/.test(source.protocol))throw Error('Unsupported torrent URL');
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),25000);
+ let response;try{response=await fetch(url,{credentials:'include',signal:controller.signal})}finally{clearTimeout(timeout)}
+ if(!response.ok)throw Error('Could not download .torrent file: HTTP '+response.status);
+ let blob=await response.blob();
+ if(blob.size>20*1024*1024||blob.size<10)throw Error('Torrent file has invalid size');
+ if(!/^d/.test(await blob.slice(0,32).text())){
+  const initial='HTTP '+response.status+', '+(response.headers.get('content-type')||'unknown')+', path '+new URL(response.url).pathname;
+  try{blob=await fetchFromSiteTab(url,tabId)}catch(e){throw Error('Extension request returned non-torrent ('+initial+'). '+e.message)}
+  if(blob.size>20*1024*1024||blob.size<10)throw Error('Page response has invalid torrent size');
+  if(!/^d/.test(await blob.slice(0,32).text()))throw Error('Page retry also returned non-torrent content');
+ }
+ return blob;
+}
+async function previewTorrentName(msg){
+ if(!/^https?:\/\//i.test(msg.url||''))return {name:null};
+ try{const blob=await downloadTorrentBlob(msg.url,msg.tabId);return {name:await torrentDisplayName(blob)}}
+ catch(e){return {name:null};} // Name lookup is optional; never block submission.
+}
+
+async function submit(msg){let s=await settings(),server=serverFor(s,msg.serverId||s.serverId);if(!server)throw Error('No server configured');if(!/^https?:\/\//.test(server.url))throw Error('Server address must begin with https:// or http://');let dest=msg.destination;if(!dest||!dest.directory)throw Error('Choose a destination');let endpoint=new URL('php/addtorrent.php?json=1',server.url.endsWith('/')?server.url:server.url+'/');let headers={};if(server.auth==='basic'&&server.username)headers.Authorization='Basic '+btoa(unescape(encodeURIComponent(server.username+':'+(server.password||''))));let form=new FormData();form.append('dir_edit',dest.directory);form.append('label',dest.label||'');if(msg.paused)form.append('torrents_start_stopped','true');let url=msg.url,hash=null;if(/^magnet:\?/i.test(url)){hash=magnetHash(url);form.append('url',url)}else{const blob=await downloadTorrentBlob(url,msg.tabId);hash=await torrentHash(blob);form.append('torrent_file[]',blob,'quick-add.torrent')}
 // Verification is best-effort: never block a valid submission because a list API is unavailable.
 if(hash){try{if((await loadedHashes(server,headers)).has(hash))return {ok:true,alreadyExists:true,detail:'Torrent already exists in rTorrent; no duplicate submitted.'}}catch(e){/* proceed */}}
 let controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),30000),response;try{response=await fetch(endpoint.toString(),{method:'POST',body:form,headers,credentials:'include',redirect:'manual',signal:controller.signal})}catch(e){if(e.name==='AbortError')throw Error('ruTorrent request timed out');throw Error('Cannot reach ruTorrent: '+e.message)}finally{clearTimeout(timeout)}if(response.type==='opaqueredirect'||(response.status>=300&&response.status<400)){
