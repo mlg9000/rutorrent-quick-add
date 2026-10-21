@@ -2,7 +2,7 @@
 
 Send magnet links and `.torrent` files from Firefox or Chrome to your own ruTorrent server. Choose a destination directory from the launcher instead of downloading a torrent locally and uploading it manually.
 
-**Current source version: 1.0.10** · [Release notes](RELEASE_NOTES_1.0.10.md)
+**Current source version: 1.0.12** · [Release notes](RELEASE_NOTES_1.0.12.md)
 
 > **Browser status:** The Firefox authenticated-download fix was confirmed working in v1.0.8. The v1.0.10 torrent-name preview and the Chrome authenticated-download fallback have not yet been confirmed in live browser testing. Build ZIPs are **unsigned**; Mozilla signs listed Firefox updates after review.
 
@@ -135,3 +135,11 @@ Bug reports and pull requests are welcome. Remove private torrent URLs, passkeys
 ## Torrent name preview (v1.0.10)
 
 For HTTP(S) torrent downloads, the launcher initially displays **Loading torrent name…** and asynchronously reads the torrent's `info.name.utf-8` or `info.name` metadata. This displays meaningful names even when the URL ends in `dl.php` or a hexadecimal ID. It uses the existing authenticated tab fallback when needed. If previewing fails, it falls back to the URL-derived name without preventing submission. Magnet-link naming and submission are unchanged. The preview may fetch the torrent separately from the submission request.
+
+### Appearance
+
+Settings → Appearance → Theme lets you choose **Follow system**, **Light**, or **Dark**. The choice applies to both the launcher and settings, and is stored locally per browser. Magnet-link handling and torrent submission are unchanged.
+
+### Dark-mode icon contrast
+
+In Dark and Follow system (when the system is dark), monochrome destination icons in the launcher and Settings automatically switch from black to white. The colored extension logo is unchanged.

@@ -39,3 +39,43 @@ footer{align-items:center}footer .server-link{margin-right:auto;color:#246bcb;fo
 .launcher #status{overflow-wrap:anywhere}
 .launcher footer{min-width:0}
 .launcher footer .server-link{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Appearance: explicit light/dark choice or system preference. */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
+:root[data-theme="dark"] body{color:#e6edf7;background:#101722}
+:root[data-theme="dark"] button,:root[data-theme="dark"] .import{background:#202d3d;color:#e6edf7;border-color:#41546b}
+:root[data-theme="dark"] button:hover{background:#30435b;border-color:#80b5fa}
+:root[data-theme="dark"] button.primary{background:#3278d6;color:#fff}
+:root[data-theme="dark"] .torrent,:root[data-theme="dark"] details,:root[data-theme="dark"] .editrow{background:#192434;border-color:#405269}
+:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea,:root[data-theme="dark"] label input:not([type=checkbox]),:root[data-theme="dark"] label select{background:#111d2c;color:#e6edf7;border-color:#41546b}
+:root[data-theme="dark"] small,:root[data-theme="dark"] .note,:root[data-theme="dark"] .server-switch label{color:#a7b9d0}
+:root[data-theme="dark"] .options h2{border-color:#41546b}
+:root[data-theme="dark"] #status.error{color:#ffb7ae;background:#4a2429}
+:root[data-theme="dark"] #status.success{color:#9aebbd;background:#173d31}
+:root[data-theme="dark"] #status.working{color:#9ac6ff}
+:root[data-theme="dark"] footer .server-link{color:#9ac6ff}
+@media(prefers-color-scheme:dark){
+:root:not([data-theme="light"]) body{color:#e6edf7;background:#101722}
+:root:not([data-theme="light"]) button,:root:not([data-theme="light"]) .import{background:#202d3d;color:#e6edf7;border-color:#41546b}
+:root:not([data-theme="light"]) button:hover{background:#30435b;border-color:#80b5fa}
+:root:not([data-theme="light"]) button.primary{background:#3278d6;color:#fff}
+:root:not([data-theme="light"]) .torrent,:root:not([data-theme="light"]) details,:root:not([data-theme="light"]) .editrow{background:#192434;border-color:#405269}
+:root:not([data-theme="light"]) input,:root:not([data-theme="light"]) select,:root:not([data-theme="light"]) textarea,:root:not([data-theme="light"]) label input:not([type=checkbox]),:root:not([data-theme="light"]) label select{background:#111d2c;color:#e6edf7;border-color:#41546b}
+:root:not([data-theme="light"]) small,:root:not([data-theme="light"]) .note,:root:not([data-theme="light"]) .server-switch label{color:#a7b9d0}
+:root:not([data-theme="light"]) .options h2{border-color:#41546b}
+:root:not([data-theme="light"]) #status.error{color:#ffb7ae;background:#4a2429}
+:root:not([data-theme="light"]) #status.success{color:#9aebbd;background:#173d31}
+:root:not([data-theme="light"]) #status.working{color:#9ac6ff}
+:root:not([data-theme="light"]) footer .server-link{color:#9ac6ff}
+}
+
+/* Monochrome destination SVGs are black in light mode; invert in dark mode.
+   Keep the colored extension logo unchanged. */
+:root[data-theme="dark"] .destination-icon,
+:root[data-theme="dark"] .destination-icon-preview {filter:invert(1)}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) .destination-icon,
+  :root:not([data-theme="light"]) .destination-icon-preview {filter:invert(1)}
+}
